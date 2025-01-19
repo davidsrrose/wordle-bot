@@ -72,17 +72,6 @@ class WordPicker:
             if letter in word:
                 return False
 
-        # Check correct positions
-        for position, letter in correct_positions.items():
-            if word[position] != letter:
-                return False
-
-        # Check disallowed positions
-        for letter, positions in disallowed_positions.items():
-            for position in positions:
-                if word[position] == letter:
-                    return False
-
         return True
 
     def _filter_word_list(self, feedback: list[list]) -> list:
