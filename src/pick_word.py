@@ -101,7 +101,6 @@ class WordPicker:
         self.possible_words = filtered_words
 
         logging.info(f"{len(self.possible_words)} possible words...")
-        print(self.possible_words)
         return self.possible_words
     
 
