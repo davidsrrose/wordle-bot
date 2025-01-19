@@ -11,7 +11,6 @@ def main():
 
     while not game.is_game_over(guess_feedback):
         guess = word_picker.choose_word(guess_feedback) 
-        print(guess)
         game.enter_guess(guess)
         guess_feedback = game.read_game_feedback()
 
