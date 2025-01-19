@@ -6,7 +6,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 
 class WordPicker:
-    def __init__(self, word_list_file: str = "5_letter_words.txt"):
+    def __init__(self, word_list_file: str = "src/5_letter_words.txt"):
         self.word_list = self._read_word_list(word_list_file)
         self.possible_words = self.word_list
         logging.info("Word picker initialized...")
@@ -20,7 +20,7 @@ class WordPicker:
         """Parses feedback of colored tiles into constraint variables."""
         logging.info("Parsing feedback from game...")
 
-        word_constraints = {
+        constraints = {
             "absent_letters": set(),
             "must_include": set(),
             "correct_positions": {},
@@ -33,26 +33,29 @@ class WordPicker:
                 continue
 
             for item in row:
-                if "empty" in row:
-                    continue
-
                 position_descr, letter, info = item.split(", ")
                 letter_position = int(position_descr.split()[0][:-2]) - 1
 
                 if info == "absent":
-                    word_constraints["absent_letters"].add(letter)
+                    constraints["absent_letters"].add(letter)
+                    #TODO - EXCEPT if the letter is included in must include
 
                 elif info == "correct":
-                    word_constraints["must_include"].add(letter)
-                    word_constraints["correct_positions"][letter_position] = letter
+                    constraints["must_include"].add(letter)
+                    constraints["correct_positions"][letter_position] = letter
 
                 elif info == "present in another position":
-                    word_constraints["must_include"].add(letter)
-                    if letter not in word_constraints["disallowed_positions"]:
-                        word_constraints["disallowed_positions"][letter] = set()
-                    word_constraints["disallowed_positions"][letter].add(letter_position)
+                    constraints["must_include"].add(letter)
+                    if letter not in constraints["disallowed_positions"]:
+                        constraints["disallowed_positions"][letter] = set()
+                    constraints["disallowed_positions"][letter].add(letter_position)
 
-        return word_constraints
+            # Remove common letters from absent_letters
+            common_letters = constraints["absent_letters"] & constraints["must_include"]  # Intersection of the two set
+            for letter in common_letters:
+                constraints["absent_letters"].discard(letter)  # .discard() avoids KeyError if letter is not found
+
+        return constraints
 
     def _is_valid_word(self, word: str, constraints: dict) -> bool:
         """ Checks if a word satisfies the given constraints. """
@@ -61,7 +64,8 @@ class WordPicker:
         absent_letters = constraints["absent_letters"]
         correct_positions = constraints["correct_positions"]
         disallowed_positions = constraints["disallowed_positions"]
-        
+
+
         # Ensure word contains all must_include letters
         for letter in must_include:
             if letter not in word:
@@ -71,23 +75,35 @@ class WordPicker:
         for letter in absent_letters:
             if letter in word:
                 return False
+            
+        # Ensure word has correct position letters
+        for position, letter in correct_positions.items():
+            if word[position] != letter:
+                return False
+
+        # Ensure word does not have disallowed position letters
+        for letter, positions in disallowed_positions.items():
+            for position in positions:
+                if word[position] == letter:
+                    return False
 
         return True
 
     def _filter_word_list(self, feedback: list[list]) -> list:
         """Filters possible words based on feedback."""
-        word_constraints = self._parse_wordle_feedback(feedback)
+        constraints = self._parse_wordle_feedback(feedback)
 
         filtered_words = []
         for word in self.possible_words:
-            if self._is_valid_word(word, word_constraints):
+            if self._is_valid_word(word, constraints):
                 filtered_words.append(word)
-
+        
         self.possible_words = filtered_words
 
         logging.info(f"{len(self.possible_words)} possible words...")
-        
+        print(self.possible_words)
         return self.possible_words
+    
 
     def choose_word(self, feedback: list[list]) -> str:
         """Chooses the next word to guess."""

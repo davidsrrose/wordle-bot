@@ -1,0 +1,4 @@
+- update to share results
+- add text via email sms gateway to send results
+- containerize and schedule to run daily on github actions
+- improve word picker 

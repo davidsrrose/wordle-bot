@@ -107,4 +107,4 @@ class WordleGameAutomation:
                 return True
 
         return False
-
+    
