@@ -6,7 +6,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 
 class WordPicker:
-    def __init__(self, word_list_file: str = "src/5_letter_words.txt"):
+    def __init__(self, word_list_file: str = "src/wordle_words.txt"):
         self.word_list = self._read_word_list(word_list_file)
         self.possible_words = self.word_list
         logging.info("Word picker initialized...")
@@ -106,8 +106,6 @@ class WordPicker:
 
     def choose_word(self, feedback: list[list]) -> str:
         """Chooses the next word to guess."""
-        if not feedback:
-            return "arson"  # Default first guess
 
         possible_words = self._filter_word_list(feedback)
         if possible_words:
