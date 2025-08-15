@@ -1,15 +1,13 @@
 import random
-import time
-import logging
 
-# Setup basic logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
+from loguru import logger
+
 
 class WordPicker:
     def __init__(self, word_list_file: str = "src/wordle_words.txt"):
         self.word_list = self._read_word_list(word_list_file)
         self.possible_words = self.word_list
-        logging.info("Word picker initialized...")
+        logger.info("Word picker initialized...")
 
     def _read_word_list(self, word_list_file: str) -> list:
         """Reads in a list of all 5-letter words from a file."""
@@ -18,13 +16,13 @@ class WordPicker:
 
     def _parse_wordle_feedback(self, feedback: list[list]):
         """Parses feedback of colored tiles into constraint variables."""
-        logging.info("Parsing feedback from game...")
+        logger.info("Parsing feedback from game...")
 
         constraints = {
             "absent_letters": set(),
             "must_include": set(),
             "correct_positions": {},
-            "disallowed_positions": {}
+            "disallowed_positions": {},
         }
 
         for row in feedback:
@@ -38,7 +36,7 @@ class WordPicker:
 
                 if info == "absent":
                     constraints["absent_letters"].add(letter)
-                    #TODO - EXCEPT if the letter is included in must include
+                    # TODO - EXCEPT if the letter is included in must include
 
                 elif info == "correct":
                     constraints["must_include"].add(letter)
@@ -51,20 +49,23 @@ class WordPicker:
                     constraints["disallowed_positions"][letter].add(letter_position)
 
             # Remove common letters from absent_letters
-            common_letters = constraints["absent_letters"] & constraints["must_include"]  # Intersection of the two set
+            common_letters = (
+                constraints["absent_letters"] & constraints["must_include"]
+            )  # Intersection of the two set
             for letter in common_letters:
-                constraints["absent_letters"].discard(letter)  # .discard() avoids KeyError if letter is not found
+                constraints["absent_letters"].discard(
+                    letter
+                )  # .discard() avoids KeyError if letter is not found
 
         return constraints
 
     def _is_valid_word(self, word: str, constraints: dict) -> bool:
-        """ Checks if a word satisfies the given constraints. """
+        """Checks if a word satisfies the given constraints."""
 
         must_include = constraints["must_include"]
         absent_letters = constraints["absent_letters"]
         correct_positions = constraints["correct_positions"]
         disallowed_positions = constraints["disallowed_positions"]
-
 
         # Ensure word contains all must_include letters
         for letter in must_include:
@@ -75,7 +76,7 @@ class WordPicker:
         for letter in absent_letters:
             if letter in word:
                 return False
-            
+
         # Ensure word has correct position letters
         for position, letter in correct_positions.items():
             if word[position] != letter:
@@ -97,12 +98,11 @@ class WordPicker:
         for word in self.possible_words:
             if self._is_valid_word(word, constraints):
                 filtered_words.append(word)
-        
+
         self.possible_words = filtered_words
 
-        logging.info(f"{len(self.possible_words)} possible words...")
+        logger.info(f"{len(self.possible_words)} possible words...")
         return self.possible_words
-    
 
     def choose_word(self, feedback: list[list]) -> str:
         """Chooses the next word to guess."""
@@ -111,5 +111,4 @@ class WordPicker:
         if possible_words:
             return random.choice(possible_words)
         else:
-            logging.info("No valid words found...")
-
+            logger.info("No valid words found...")

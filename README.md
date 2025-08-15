@@ -46,8 +46,13 @@ Set up virtual env with uv
 uv sync
 ```
 
+Install playwright
+```bash
+playwright intall
+```
+
 ## Usage
-### Run program and watch it play wordle
+### 3. Run program and watch it play wordle
 ```bash
 uv run src/main.py
 ```
