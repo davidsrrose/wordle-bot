@@ -1,58 +1,69 @@
-# Wordle Friend Bot
-A bot to play wordle daily, then text it's results to you
+# 🤖 Wordle Bot 
+Python project to play Wordle, send results, and occasionally taunt your friends 📱
 
 ### Table of Contents
 - [Overview](#overview)
+- [Quickstart](#quickstart)
+- [Progress Overview](#progress-overview)
 - [Prerequisites](#prerequisites)
 - [Setup](#setup)
 - [Usage](#usage)
-- [Docs](#docs)
- 
-## Overview (currently a work in progress)
 
-[x] play wordle with playwright 
-[] text reults to given phone number (via provider's email to SMS gateway)
-[] add tailored message/taunting to wordle message daily via chatgpt prompt/api
-[] improve wordle algorithm/logic
+## Overview
 
-## Prerequisites
+Automates daily Wordle play with Playwright and shares the outcome via text, with room for taunting messages and smarter solving strategies.
 
-You will need to following:
-- **Git**: To clone the repository.
-- **Python**: Ensure you have python installed, and your version is >= the version specified in the uv.lock file.
-- **uv**: A package manager for virtual environments.
+## Quickstart
 
-## Setup
-
-Follow the steps below to set up a Python environment using `uv` and play wordle
-
-### 1. Clone the Repository & check out dev branch
-
-Clone the repository to your local machine using Git:
+Already have Python and `uv` installed? Run via:
 
 ```bash
 git clone https://github.com/davidsrrose/wordle-bot.git
+cd wordle-bot
+uv sync
+uv run playwright install
+uv run src/main.py
 ```
-```bash
-git fetch
-```
-```bash
-git checkout dev
-```
-### 2. Set up environment
+## Progress Overview
 
-Set up virtual env with uv
+- [x] Play Wordle with Playwright
+- [ ] Send results to a phone number (via provider email-to-SMS gateway)
+- [ ] Add tailored message/taunting to the daily Wordle message (ChatGPT prompt/API)
+- [ ] Improve Wordle algorithm/logic
+  - If corresponding with someone over SMS, always retry until you beat them
+
+## Prerequisites
+
+You will need the following (install if you do not have them):
+
+| Tool | Purpose | Install |
+| --- | --- | --- |
+| 🛠️ Git | Clone the repository | https://git-scm.com/downloads or `brew install git` (macOS) |
+| 🐍 Python (>= version in `uv.lock`) | Runtime for the bot | https://www.python.org/downloads/ or use `pyenv` |
+| 🪄 uv | Manage virtual env and dependencies | `curl -Ls https://astral.sh/uv/install.sh | sh` (see https://docs.astral.sh/uv/) |
+
+## Setup
+
+Follow these steps to set up the environment using `uv`.
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/davidsrrose/wordle-bot.git
+cd wordle-bot
+```
+
+### 2. Install dependencies
+
 ```bash
 uv sync
-```
-
-Install playwright
-```bash
-playwright intall
+uv run playwright install
 ```
 
 ## Usage
-### 3. Run program and watch it play wordle
+
+### 3. Run the program and watch it play Wordle 🎮
+
 ```bash
 uv run src/main.py
 ```
