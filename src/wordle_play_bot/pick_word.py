@@ -4,68 +4,64 @@ from loguru import logger
 
 
 class WordPicker:
-    def __init__(self, word_list_file: str = "src/wordle_words.txt"):
+    def __init__(self, word_list_file: str = 'src/wordle_words.txt'):
         self.word_list = self._read_word_list(word_list_file)
         self.possible_words = self.word_list
-        logger.info("Word picker initialized...")
+        logger.info('Word picker initialized...')
 
     def _read_word_list(self, word_list_file: str) -> list:
         """Reads in a list of all 5-letter words from a file."""
-        with open(word_list_file, "r") as fin:
+        with open(word_list_file) as fin:
             return [line.strip().upper() for line in fin]
 
     def _parse_wordle_feedback(self, feedback: list[list]):
         """Parses feedback of colored tiles into constraint variables."""
-        logger.info("Parsing feedback from game...")
+        logger.info('Parsing feedback from game...')
 
         constraints = {
-            "absent_letters": set(),
-            "must_include": set(),
-            "correct_positions": {},
-            "disallowed_positions": {},
+            'absent_letters': set(),
+            'must_include': set(),
+            'correct_positions': {},
+            'disallowed_positions': {},
         }
 
         for row in feedback:
             # Skip rows with any "empty" feedback
-            if any("empty" in item for item in row):
+            if any('empty' in item for item in row):
                 continue
 
             for item in row:
-                position_descr, letter, info = item.split(", ")
+                position_descr, letter, info = item.split(', ')
                 letter_position = int(position_descr.split()[0][:-2]) - 1
 
-                if info == "absent":
-                    constraints["absent_letters"].add(letter)
+                if info == 'absent':
+                    constraints['absent_letters'].add(letter)
                     # TODO - EXCEPT if the letter is included in must include
 
-                elif info == "correct":
-                    constraints["must_include"].add(letter)
-                    constraints["correct_positions"][letter_position] = letter
+                elif info == 'correct':
+                    constraints['must_include'].add(letter)
+                    constraints['correct_positions'][letter_position] = letter
 
-                elif info == "present in another position":
-                    constraints["must_include"].add(letter)
-                    if letter not in constraints["disallowed_positions"]:
-                        constraints["disallowed_positions"][letter] = set()
-                    constraints["disallowed_positions"][letter].add(letter_position)
+                elif info == 'present in another position':
+                    constraints['must_include'].add(letter)
+                    if letter not in constraints['disallowed_positions']:
+                        constraints['disallowed_positions'][letter] = set()
+                    constraints['disallowed_positions'][letter].add(letter_position)
 
             # Remove common letters from absent_letters
-            common_letters = (
-                constraints["absent_letters"] & constraints["must_include"]
-            )  # Intersection of the two set
+            common_letters = constraints['absent_letters'] & constraints['must_include']  # Intersection of the two set
             for letter in common_letters:
-                constraints["absent_letters"].discard(
-                    letter
-                )  # .discard() avoids KeyError if letter is not found
+                constraints['absent_letters'].discard(letter)  # .discard() avoids KeyError if letter is not found
 
         return constraints
 
     def _is_valid_word(self, word: str, constraints: dict) -> bool:
         """Checks if a word satisfies the given constraints."""
 
-        must_include = constraints["must_include"]
-        absent_letters = constraints["absent_letters"]
-        correct_positions = constraints["correct_positions"]
-        disallowed_positions = constraints["disallowed_positions"]
+        must_include = constraints['must_include']
+        absent_letters = constraints['absent_letters']
+        correct_positions = constraints['correct_positions']
+        disallowed_positions = constraints['disallowed_positions']
 
         # Ensure word contains all must_include letters
         for letter in must_include:
@@ -101,7 +97,7 @@ class WordPicker:
 
         self.possible_words = filtered_words
 
-        logger.info(f"{len(self.possible_words)} possible words...")
+        logger.info(f'{len(self.possible_words)} possible words...')
         return self.possible_words
 
     def choose_word(self, feedback: list[list]) -> str:
@@ -111,4 +107,4 @@ class WordPicker:
         if possible_words:
             return random.choice(possible_words)
         else:
-            logger.info("No valid words found...")
+            logger.info('No valid words found...')

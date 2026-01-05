@@ -1,9 +1,8 @@
-import logging
-import time
 import random
+import time
 
-from playwright.sync_api import sync_playwright
 from loguru import logger
+from playwright.sync_api import sync_playwright
 
 
 def human_like_delay(min_delay=0.5, max_delay=2.0):
@@ -14,16 +13,14 @@ def human_like_delay(min_delay=0.5, max_delay=2.0):
 class WordleGameAutomation:
     def __init__(self, show_browser) -> None:
         """Initializes the browser and opens the Wordle game."""
-        logger.info("Starting wordle game...")
+        logger.info('Starting wordle game...')
         self.p = sync_playwright().start()  # Start Playwright context
         self.browser = self.p.chromium.launch(headless=not show_browser)
-        self.browser_context = (
-            self.browser.new_context(  # a context with clipboard permissions
-                permissions=["clipboard-read", "clipboard-write"]
-            )
+        self.browser_context = self.browser.new_context(  # a context with clipboard permissions
+            permissions=['clipboard-read', 'clipboard-write']
         )
         self.page = self.browser_context.new_page()
-        url = "https://www.nytimes.com/games/wordle/index.html"
+        url = 'https://www.nytimes.com/games/wordle/index.html'
         self.page.goto(url)
         self.close_popups()
         self.turn_on_hard_mode()
@@ -32,7 +29,7 @@ class WordleGameAutomation:
         """Closes multiple popups in sequence."""
         self.page.click("text='Play'")
         self.page.click("button[aria-label = 'Close']")
-        logger.info("All popups closed...")
+        logger.info('All popups closed...')
 
     def turn_on_hard_mode(self) -> None:
         """Enables hard mode in the settings."""
@@ -42,7 +39,7 @@ class WordleGameAutomation:
         self.page.click('button[aria-label = "Hard Mode"]')
         self.page.click("button[aria-label = 'Close']")
 
-        logger.info("Hard mode turned on...")
+        logger.info('Hard mode turned on...')
 
     def enter_guess(self, guess: str) -> None:
         human_like_delay()
@@ -63,11 +60,11 @@ class WordleGameAutomation:
     def check_for_captcha(self):
         """Check if 'captcha' appears anywhere on the page."""
         page_content = self.page.content()  # Get the entire HTML content of the page
-        if "captcha" in page_content.lower():  # Search for 'captcha' (case-insensitive)
-            logger.info("Captcha detected on the page.")
+        if 'captcha' in page_content.lower():  # Search for 'captcha' (case-insensitive)
+            logger.info('Captcha detected on the page.')
             return True
         else:
-            logger.info("No captcha detected on the page.")
+            logger.info('No captcha detected on the page.')
             return False
 
     def wait_for_any_animation_to_finish(self):
@@ -85,8 +82,8 @@ class WordleGameAutomation:
                 timeout=5000,
             )  # Wait for up to 5 seconds
 
-        except Exception as e:
-            logger.warning("Animation took too long or failed to finish in time.")
+        except Exception:
+            logger.warning('Animation took too long or failed to finish in time.')
             # If the wait exceeds 5 seconds or fails, try clicking the 'Exit' button
             # self.page.click("button[aria-label = 'Close']")
 
@@ -97,15 +94,12 @@ class WordleGameAutomation:
         tiles = self.page.query_selector_all(tile_selector)
 
         # Collect aria-label values
-        tile_feedback = [tile.get_attribute("aria-label") for tile in tiles]
+        tile_feedback = [tile.get_attribute('aria-label') for tile in tiles]
         # Define the number of columns (Wordle is 5 columns per row)
         num_columns = 5
 
         # Split tile_feedback into rows
-        rows = [
-            tile_feedback[i : i + num_columns]
-            for i in range(0, len(tile_feedback), num_columns)
-        ]
+        rows = [tile_feedback[i : i + num_columns] for i in range(0, len(tile_feedback), num_columns)]
         # Return the rows directly without additional labels
         return rows
 
@@ -116,12 +110,12 @@ class WordleGameAutomation:
 
         # Game won
         if self.is_game_win(tile_feedback):
-            logger.info("Game won!")
+            logger.info('Game won!')
             return True
 
         # Game lost
         if self.is_game_lost(tile_feedback):
-            logger.info("Game lost :(")
+            logger.info('Game lost :(')
             return True
 
         return False
@@ -130,7 +124,7 @@ class WordleGameAutomation:
         """Checks if no rows in the tile feedback have 'empty'."""
         for row in tile_feedback:
             # Check if the row contains "empty" anywhere in the list
-            if any("empty" in item for item in row):
+            if any('empty' in item for item in row):
                 return False  # If any row has "empty", the game is not lost yet
 
         return True
@@ -139,23 +133,23 @@ class WordleGameAutomation:
         """Checks if any row in the tile feedback has all correct letters."""
         for row in tile_feedback:
             # Check if all items in the row are correct, this is a win
-            if all("correct" in item for item in row):
+            if all('correct' in item for item in row):
                 return True
 
         return False
 
     def screenshot_game(self) -> None:
         # take full page screenshot
-        self.page.screenshot(path="full_page_screenshot.png")
+        self.page.screenshot(path='full_page_screenshot.png')
 
     def get_share_button_content(self) -> str:
         # Click the share button to trigger the clipboard copy action
-        self.page.click("button.Footer-module_shareButton__cHprS")
+        self.page.click('button.Footer-module_shareButton__cHprS')
 
         # Wait a bit for the clipboard content to be copied (adjust the delay as needed)
         self.page.wait_for_timeout(500)
 
         # Retrieve the clipboard content via the browser context
-        clipboard_content = self.page.evaluate("navigator.clipboard.readText()")
+        clipboard_content = self.page.evaluate('navigator.clipboard.readText()')
 
         return clipboard_content

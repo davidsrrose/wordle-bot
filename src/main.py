@@ -1,5 +1,5 @@
-from wordle_play_bot.wordle_game import WordleGameAutomation
 from wordle_play_bot.pick_word import WordPicker
+from wordle_play_bot.wordle_game import WordleGameAutomation
 
 
 def main():
@@ -28,5 +28,5 @@ def main():
     game.p.stop()  # Stop Playwright context when done
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
