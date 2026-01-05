@@ -1,8 +1,22 @@
-# Ignore __pycache__ directories
+# macOS crap
+.DS_Store
+
+# Python stuff
 __pycache__/
+build/
+dist/
+eggs/
+.eggs/
+develop-eggs/
+*.egg-info/
+*.egg
 
-# Ignore .png files
-*.png
-
-# Ignore virtual environment directory
+# Virtual environment
 .venv/
+venv/
+
+# envs
+*.env*
+
+# Logs
+*.log*
