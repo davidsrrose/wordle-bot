@@ -1,4 +1,4 @@
-# 🤖 Wordle Bot 
+# 🤖 Wordle Bot
 Python project to play Wordle for me because I'm lazy
 
 ### Table of Contents
@@ -53,6 +53,12 @@ cd wordle-bot
 ```bash
 uv sync
 uv run playwright install
+```
+
+If you're developing, install git hooks so lint/format run before commits:
+
+```bash
+uv run pre-commit install
 ```
 
 ## Usage

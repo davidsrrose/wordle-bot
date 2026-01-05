@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python and uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: uv sync --all-groups
+
+      - name: Ruff (lint + format check)
+        run: |
+          uv run ruff check
+          uv run ruff format --check
+
+      - name: Tests (if any)
+        run: |
+          set -euo pipefail
+          uv run pytest || status=$?
+          if [ "${status:-0}" -eq 5 ]; then
+            echo "No tests collected (exit 5); skipping."
+            exit 0
+          elif [ "${status:-0}" -ne 0 ]; then
+            exit "${status}"
+          fi
