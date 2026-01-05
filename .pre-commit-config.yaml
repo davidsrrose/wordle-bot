@@ -12,8 +12,11 @@ repos:
     rev: v0.6.9
     hooks:
       - id: ruff
-        args: [--fix]
+        args: [--fix, .]
+        pass_filenames: false
       - id: ruff-format
+        args: [.]
+        pass_filenames: false
 
 default_language_version:
   python: python3
