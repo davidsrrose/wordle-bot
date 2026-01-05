@@ -34,7 +34,7 @@ You will need the following (install if you do not have them):
 | Tool | Purpose | Install |
 | --- | --- | --- |
 | 🛠️ Git | Clone the repository | https://git-scm.com/downloads or `brew install git` (macOS) |
-| 🐍 Python (>= version in `uv.lock`) | Runtime for the bot | https://www.python.org/downloads/ or use `pyenv` |
+| 🐍 Python (>=3.13, see `uv.lock`) | Runtime for the bot | https://www.python.org/downloads/ or use `pyenv` |
 | 🪄 uv | Manage virtual env and dependencies | `curl -Ls https://astral.sh/uv/install.sh | sh` (see https://docs.astral.sh/uv/) |
 
 ## Setup
