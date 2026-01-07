@@ -2,7 +2,7 @@ import random
 import time
 
 from loguru import logger
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import BrowserContext, Page, sync_playwright
 
 
 def human_like_delay(min_delay=0.5, max_delay=2.0):
@@ -11,51 +11,111 @@ def human_like_delay(min_delay=0.5, max_delay=2.0):
 
 
 class WordleGameAutomation:
-    def __init__(self, show_browser) -> None:
+    def __init__(self, show_browser: bool) -> None:
         """Initializes the browser and opens the Wordle game."""
         logger.info('Starting wordle game...')
         self.p = sync_playwright().start()  # Start Playwright context
         self.browser = self.p.chromium.launch(headless=not show_browser)
-        self.browser_context = self.browser.new_context(  # a context with clipboard permissions
+        self.browser_context: BrowserContext = self.browser.new_context(  # a context with clipboard permissions
             permissions=['clipboard-read', 'clipboard-write']
         )
         self.page = self.browser_context.new_page()
+        self.page.set_default_navigation_timeout(60_000)
+        self.page.set_default_timeout(15_000)
+        self.ensure_ready()
+
+    # --- Helpers ---
+    def _handle_new_page(self, page: Page) -> None:
+        """Close unexpected popups/tabs that navigate away from Wordle."""
+        try:
+            page.wait_for_load_state('domcontentloaded', timeout=3_000)
+            url = page.url
+            # Ignore the main page, blank pages, or pages without an opener (likely the main tab).
+            if page == self.page or url in ('about:blank', '') or page.opener is None:
+                return
+
+            if 'nytimes.com/games/wordle' not in url:
+                logger.warning(f'Closing unexpected popup/tab: {url}')
+                page.close()
+        except Exception:
+            try:
+                page.close()
+            except Exception:
+                pass
+
+    def click_button(self, name: str, role: str = 'button', timeout_ms: int = 5_000, retries: int = 1) -> bool:
+        """Click a button by role/name with limited retries; returns True if clicked."""
+        for attempt in range(retries + 1):
+            try:
+                self.page.get_by_role(role, name=name).click(timeout=timeout_ms)
+                return True
+            except Exception:
+                if attempt >= retries:
+                    return False
+                self.page.wait_for_timeout(300)  # brief settle before retry
+        return False
+
+    def wait_for_keyboard_ready(self, timeout_ms: int = 10_000) -> None:
+        """Wait until the on-screen keyboard Enter key is present (board loaded)."""
+        self.page.wait_for_selector("button[aria-label = 'enter']", timeout=timeout_ms)
+
+    def ensure_ready(self) -> None:
+        """Navigate, close intro popups, toggle hard mode, and confirm the board is ready."""
         url = 'https://www.nytimes.com/games/wordle/index.html'
-        self.page.goto(url)
+        self.page.goto(url, wait_until='load', timeout=60_000)
         self.close_popups()
+        self.wait_for_keyboard_ready()
         self.turn_on_hard_mode()
 
     def close_popups(self) -> None:
         """Closes multiple popups in sequence."""
-        self.page.click("text='Play'")
-        self.page.click("button[aria-label = 'Close']")
-        logger.info('All popups closed...')
+        # Try to click the Play CTA first; wait explicitly for it to appear.
+        try:
+            self.page.wait_for_selector("button:has-text('Play')", timeout=8_000)
+            self.page.locator("button:has-text('Play')").click(timeout=3_000)
+            logger.info('Clicked Play CTA.')
+        except Exception:
+            logger.debug('Play button not found; continuing.')
+
+        # Close any intro modal if present.
+        clicked_close = self.click_button('Close', timeout_ms=3_000)
+        if not clicked_close:
+            logger.debug('Intro popup already closed.')
+
+        logger.info('All popups closed (or already absent)...')
 
     def turn_on_hard_mode(self) -> None:
         """Enables hard mode in the settings."""
 
-        # Open settings, turn on hard mode, close settings
-        self.page.click('button[aria-label = "Settings"]')
-        self.page.click('button[aria-label = "Hard Mode"]')
-        self.page.click("button[aria-label = 'Close']")
+        try:
+            if not self.click_button('Settings', timeout_ms=5_000):
+                logger.warning('Settings button not found; continuing in normal mode.')
+                return
 
-        logger.info('Hard mode turned on...')
+            toggle = self.page.get_by_role('switch', name='Hard Mode')
+            state = toggle.get_attribute('aria-checked')
+            if state != 'true':
+                toggle.click(timeout=3_000)
+                logger.info('Hard mode toggled on.')
+            else:
+                logger.info('Hard mode already on.')
 
-    def enter_guess(self, guess: str) -> None:
+            self.click_button('Close', timeout_ms=3_000)
+        except Exception:
+            logger.warning('Hard mode toggle not found; continuing in normal mode.')
+
+    def enter_guess(self, guess: str, row_index: int) -> None:
         human_like_delay()
         """Types a guess by simulating clicking on the on-screen keyboard."""
         logger.info(f"Guessing '{guess}'...")
 
-        # Loop through each letter in the guess and click the corresponding key on the on-screen keyboard
         for letter in guess:
             letter_button = f"button[data-key='{letter.lower()}']"
-            # Wait for the button to be visible and click it
-            self.page.wait_for_selector(letter_button, timeout=1000)
+            self.page.wait_for_selector(letter_button, timeout=1_000)
             self.page.click(letter_button)
 
-        # After typing the guess, press Enter if needed to submit the guess
         self.page.click("button[aria-label = 'enter']")
-        self.wait_for_any_animation_to_finish()
+        self.wait_for_row_to_settle(row_index)
 
     def check_for_captcha(self):
         """Check if 'captcha' appears anywhere on the page."""
@@ -67,25 +127,23 @@ class WordleGameAutomation:
             logger.info('No captcha detected on the page.')
             return False
 
-    def wait_for_any_animation_to_finish(self):
-        """Wait for all animations to finish and try clicking exit if it takes too long."""
-        try:
-            # Wait for any animations to finish on the current page
-            self.page.wait_for_function(
-                """() => {
-                const elements = document.querySelectorAll('*');
-                return !Array.from(elements).some(element => {
-                    const style = window.getComputedStyle(element);
-                    return style.animationName !== 'none' && style.animationDuration !== '0s';
+    def wait_for_row_to_settle(self, row_index: int, timeout_ms: int = 10_000) -> None:
+        """Wait until the given row has 5 evaluated tiles and is stable."""
+        row_target = (row_index + 1) * 5
+        self.page.wait_for_function(
+            """(rowTarget) => {
+                const tiles = Array.from(document.querySelectorAll('[role="img"][aria-roledescription="tile"]'));
+                const evaluated = tiles.filter(t => {
+                    const label = t.getAttribute('aria-label') || '';
+                    return label.includes('correct') || label.includes('present') || label.includes('absent');
                 });
+                return evaluated.length >= rowTarget;
             }""",
-                timeout=5000,
-            )  # Wait for up to 5 seconds
-
-        except Exception:
-            logger.warning('Animation took too long or failed to finish in time.')
-            # If the wait exceeds 5 seconds or fails, try clicking the 'Exit' button
-            # self.page.click("button[aria-label = 'Close']")
+            arg=row_target,
+            timeout=timeout_ms,
+        )
+        # Brief settle to avoid flakiness on rapid updates.
+        self.page.wait_for_timeout(200)
 
     def read_game_feedback(self) -> list:
         """Inspects the game tiles and returns a list of aria-labels for the tiles, structured by rows."""
@@ -142,14 +200,19 @@ class WordleGameAutomation:
         # take full page screenshot
         self.page.screenshot(path='full_page_screenshot.png')
 
-    def get_share_button_content(self) -> str:
-        # Click the share button to trigger the clipboard copy action
-        self.page.click('button.Footer-module_shareButton__cHprS')
+    def collect_results(self) -> str:
+        """Open results/share flow, copy the result text, and return it."""
 
-        # Wait a bit for the clipboard content to be copied (adjust the delay as needed)
-        self.page.wait_for_timeout(500)
+        # Close any win modal that blocks the underlying board/share button.
+        self.click_button('Close', timeout_ms=2_000)
 
-        # Retrieve the clipboard content via the browser context
-        clipboard_content = self.page.evaluate('navigator.clipboard.readText()')
+        # If a "See results" button is present (post-win screen), click it to reveal share.
+        self.click_button('See results', timeout_ms=3_000)
 
-        return clipboard_content
+        # Use a stable accessible selector for the share button with one retry.
+        if not self.click_button('Share', timeout_ms=10_000, retries=1):
+            self.page.wait_for_timeout(300)
+            self.click_button('Share', timeout_ms=5_000)
+
+        self.page.wait_for_timeout(500)  # allow clipboard copy to complete
+        return self.page.evaluate('navigator.clipboard.readText()')

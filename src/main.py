@@ -8,17 +8,16 @@ def main():
     word_picker = WordPicker()
 
     guess_feedback = []
+    row_index = 0
 
     while not game.is_game_over(guess_feedback):
         guess = word_picker.choose_word(guess_feedback)
-        game.enter_guess(guess)
+        game.enter_guess(guess, row_index)
         guess_feedback = game.read_game_feedback()
-
-    # Close popup to sign up for NYT
-    game.page.click("button[aria-label = 'Close']")
+        row_index += 1
 
     # Copy share text
-    results = game.get_share_button_content()
+    results = game.collect_results()
 
     # Print the button text
     print(results)

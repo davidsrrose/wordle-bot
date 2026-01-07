@@ -1,17 +1,20 @@
 import random
+from pathlib import Path
 
 from loguru import logger
 
 
 class WordPicker:
-    def __init__(self, word_list_file: str = 'src/wordle_words.txt'):
+    def __init__(self, word_list_file: str | Path | None = None):
+        if word_list_file is None:
+            word_list_file = Path(__file__).resolve().parent / 'wordle_words.txt'
         self.word_list = self._read_word_list(word_list_file)
         self.possible_words = self.word_list
         logger.info('Word picker initialized...')
 
-    def _read_word_list(self, word_list_file: str) -> list:
+    def _read_word_list(self, word_list_file: str | Path) -> list:
         """Reads in a list of all 5-letter words from a file."""
-        with open(word_list_file) as fin:
+        with Path(word_list_file).open() as fin:
             return [line.strip().upper() for line in fin]
 
     def _parse_wordle_feedback(self, feedback: list[list]):
