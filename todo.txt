@@ -1,0 +1,18 @@
+Wordle Bot Roadmap
+
+Current
+- Add basic tests for WordPicker (parsing + filtering)
+
+Next Up
+- Add a small test word list fixture for deterministic tests
+- Add CI (ruff check/format + tests)
+
+Backlog
+- Config module (timeouts, headless, URLs)
+- Decouple Playwright from logic for testability
+- Logging config (level, file/console)
+- Improve word list handling (cache, validate, optional path)
+- Task runner (just/make/uv scripts)
+- Typed feedback structures (dataclasses/NamedTuple)
+- Coverage reporting in CI
+- Type checking (mypy/pyright)

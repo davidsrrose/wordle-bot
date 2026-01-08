@@ -1,0 +1,120 @@
+import random
+from importlib import resources
+from pathlib import Path
+
+from loguru import logger
+
+
+class WordPicker:
+    def __init__(self, word_list_file: str | Path | None = None):
+        if word_list_file is None:
+            self.word_list = self._read_default_word_list()
+        else:
+            self.word_list = self._read_word_list(Path(word_list_file))
+        self.possible_words = self.word_list
+        logger.info('Word picker initialized...')
+
+    def _read_default_word_list(self) -> list[str]:
+        """Reads the built-in word list included with the package."""
+        word_list = resources.files('play_wordle').joinpath('wordle_words.txt').read_text(encoding='utf-8')
+        return [line.strip().upper() for line in word_list.splitlines() if line.strip()]
+
+    def _read_word_list(self, word_list_file: Path) -> list[str]:
+        """Reads in a list of all 5-letter words from a file."""
+        with word_list_file.open(encoding='utf-8') as fin:
+            return [line.strip().upper() for line in fin if line.strip()]
+
+    def _parse_wordle_feedback(self, feedback: list[list]):
+        """Parses feedback of colored tiles into constraint variables."""
+        logger.info('Parsing feedback from game...')
+
+        constraints = {
+            'absent_letters': set(),
+            'must_include': set(),
+            'correct_positions': {},
+            'disallowed_positions': {},
+        }
+
+        for row in feedback:
+            # Skip rows with any "empty" feedback
+            if any('empty' in item for item in row):
+                continue
+
+            for item in row:
+                position_descr, letter, info = item.split(', ')
+                letter_position = int(position_descr.split()[0][:-2]) - 1
+
+                if info == 'absent':
+                    constraints['absent_letters'].add(letter)
+                    # TODO - EXCEPT if the letter is included in must include
+
+                elif info == 'correct':
+                    constraints['must_include'].add(letter)
+                    constraints['correct_positions'][letter_position] = letter
+
+                elif info == 'present in another position':
+                    constraints['must_include'].add(letter)
+                    if letter not in constraints['disallowed_positions']:
+                        constraints['disallowed_positions'][letter] = set()
+                    constraints['disallowed_positions'][letter].add(letter_position)
+
+            # Remove common letters from absent_letters
+            common_letters = constraints['absent_letters'] & constraints['must_include']  # Intersection of the two set
+            for letter in common_letters:
+                constraints['absent_letters'].discard(letter)  # .discard() avoids KeyError if letter is not found
+
+        return constraints
+
+    def _is_valid_word(self, word: str, constraints: dict) -> bool:
+        """Checks if a word satisfies the given constraints."""
+
+        must_include = constraints['must_include']
+        absent_letters = constraints['absent_letters']
+        correct_positions = constraints['correct_positions']
+        disallowed_positions = constraints['disallowed_positions']
+
+        # Ensure word contains all must_include letters
+        for letter in must_include:
+            if letter not in word:
+                return False
+
+        # Ensure word does not contain any absent_letters
+        for letter in absent_letters:
+            if letter in word:
+                return False
+
+        # Ensure word has correct position letters
+        for position, letter in correct_positions.items():
+            if word[position] != letter:
+                return False
+
+        # Ensure word does not have disallowed position letters
+        for letter, positions in disallowed_positions.items():
+            for position in positions:
+                if word[position] == letter:
+                    return False
+
+        return True
+
+    def _filter_word_list(self, feedback: list[list]) -> list:
+        """Filters possible words based on feedback."""
+        constraints = self._parse_wordle_feedback(feedback)
+
+        filtered_words = []
+        for word in self.possible_words:
+            if self._is_valid_word(word, constraints):
+                filtered_words.append(word)
+
+        self.possible_words = filtered_words
+
+        logger.info(f'{len(self.possible_words)} possible words...')
+        return self.possible_words
+
+    def choose_word(self, feedback: list[list]) -> str:
+        """Chooses the next word to guess."""
+
+        possible_words = self._filter_word_list(feedback)
+        if possible_words:
+            return random.choice(possible_words)
+        else:
+            logger.info('No valid words found...')

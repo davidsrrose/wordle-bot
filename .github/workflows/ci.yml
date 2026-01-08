@@ -1,0 +1,59 @@
+name: CI # Workflow name shown in GitHub Actions UI
+
+# When to run this workflow
+on:
+  push:
+    branches: [main] # Run on pushes to main
+  pull_request:
+    branches: [main] # Run on PRs targeting main
+  workflow_dispatch: # Allow manual runs from the GitHub UI
+
+# Minimize default token permissions
+permissions:
+  contents: read
+
+jobs:
+  # Single job that lints, formats, runs tests
+  lint-and-test:
+    runs-on: ubuntu-latest # Hosted runner image
+    steps:
+      # Fetch repository contents
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      # Install Python + uv in the runner
+      - name: Set up Python and uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          python-version: "3.13"
+
+      # Cache uv downloads for faster CI runs
+      - name: Cache uv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
+          restore-keys: ${{ runner.os }}-uv-
+
+      # Install project dependencies
+      - name: Install dependencies
+        run: uv sync --all-groups --frozen
+
+      # Lint and verify formatting with Ruff
+      - name: Ruff (lint + format check)
+        run: |
+          uv run ruff check
+          uv run ruff format --check
+
+      # Run tests; treat "no tests collected" as a pass
+      - name: Tests (if any)
+        run: |
+          set -euo pipefail
+          # pytest exit code 5 = no tests collected
+          uv run pytest || status=$?
+          if [ "${status:-0}" -eq 5 ]; then
+            echo "No tests collected (exit 5); skipping."
+            exit 0
+          elif [ "${status:-0}" -ne 0 ]; then
+            exit "${status}"
+          fi

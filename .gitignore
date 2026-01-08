@@ -1,0 +1,25 @@
+# macOS crap
+.DS_Store
+
+# Python stuff
+__pycache__/
+build/
+dist/
+eggs/
+.eggs/
+develop-eggs/
+*.egg-info/
+*.egg
+
+# Virtual environment
+.venv/
+venv/
+
+# envs
+*.env*
+
+# Logs
+*.log*
+
+# Playwright browsers
+ms-playwright/
