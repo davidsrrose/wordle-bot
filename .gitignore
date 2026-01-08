@@ -20,3 +20,6 @@ venv/
 
 # Logs
 *.log*
+
+# Playwright browsers
+ms-playwright/
