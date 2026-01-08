@@ -1,14 +1,9 @@
 ## Summary
-- One line summary of this PR
+- One line summary of change/updates
 
 ## Changes
-- Key change 1
-- Key change 2
+- Bullet 1 of change
+- Bullet 2 of change
 
-## Issues resolved
-- Issue 1
-- Issue 2
-
-## Checklist
-- [ ] Linked issue(s)
-- [ ] Docs/README updated (if needed)
+## Notes
+- Important notes line
