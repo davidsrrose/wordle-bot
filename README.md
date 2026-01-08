@@ -17,15 +17,16 @@ git clone https://github.com/davidsrrose/wordle-bot.git
 cd wordle-bot
 uv sync
 uv run playwright install
-uv run src/main.py
+uv run python -m play_wordle
 ```
 ## Progress Overview
 
 - [x] Play Wordle with Playwright
-- [ ] Send results to a phone number (via provider email-to-SMS gateway)?
-- [ ] Add tailored message/taunting to the daily Wordle message (ChatGPT prompt/API)?
+- [ ] Send results to phone, whatsapp? slack?
+- [ ] Automate w/ github actions to play & send daily
+- [ ] Add tailored message/taunting
+- [ ] Add AI agent to read and respond back to any texts?
 - [ ] Improve Wordle algorithm/logic
-  - If corresponding with someone over SMS, always retry until you beat them?
 
 ## Prerequisites
 
@@ -66,5 +67,11 @@ uv run pre-commit install
 ### 3. Run the program and watch it play Wordle 🎮
 
 ```bash
-uv run src/main.py
+uv run python -m play_wordle
+```
+
+You can also run the top-level script if you prefer:
+
+```bash
+uv run python src/main.py
 ```

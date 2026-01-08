@@ -1,4 +1,5 @@
 import random
+from importlib import resources
 from pathlib import Path
 
 from loguru import logger
@@ -7,15 +8,21 @@ from loguru import logger
 class WordPicker:
     def __init__(self, word_list_file: str | Path | None = None):
         if word_list_file is None:
-            word_list_file = Path(__file__).resolve().parent / 'wordle_words.txt'
-        self.word_list = self._read_word_list(word_list_file)
+            self.word_list = self._read_default_word_list()
+        else:
+            self.word_list = self._read_word_list(Path(word_list_file))
         self.possible_words = self.word_list
         logger.info('Word picker initialized...')
 
-    def _read_word_list(self, word_list_file: str | Path) -> list:
+    def _read_default_word_list(self) -> list[str]:
+        """Reads the built-in word list included with the package."""
+        word_list = resources.files('play_wordle').joinpath('wordle_words.txt').read_text(encoding='utf-8')
+        return [line.strip().upper() for line in word_list.splitlines() if line.strip()]
+
+    def _read_word_list(self, word_list_file: Path) -> list[str]:
         """Reads in a list of all 5-letter words from a file."""
-        with Path(word_list_file).open() as fin:
-            return [line.strip().upper() for line in fin]
+        with word_list_file.open(encoding='utf-8') as fin:
+            return [line.strip().upper() for line in fin if line.strip()]
 
     def _parse_wordle_feedback(self, feedback: list[list]):
         """Parses feedback of colored tiles into constraint variables."""

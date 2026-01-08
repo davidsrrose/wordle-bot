@@ -1,4 +1,4 @@
-from play_wordle.app import main
+from .app import main
 
 if __name__ == '__main__':
     raise SystemExit(main())

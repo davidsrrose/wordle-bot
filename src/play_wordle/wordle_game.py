@@ -11,7 +11,7 @@ def human_like_delay(min_delay=0.5, max_delay=2.0):
 
 
 class WordleGameAutomation:
-    def __init__(self, show_browser: bool) -> None:
+    def __init__(self, show_browser: bool = True) -> None:
         """Initializes the browser and opens the Wordle game."""
         logger.info('Starting wordle game...')
         self.p = sync_playwright().start()  # Start Playwright context
@@ -105,8 +105,8 @@ class WordleGameAutomation:
             logger.warning('Hard mode toggle not found; continuing in normal mode.')
 
     def enter_guess(self, guess: str, row_index: int) -> None:
-        human_like_delay()
         """Types a guess by simulating clicking on the on-screen keyboard."""
+        human_like_delay()
         logger.info(f"Guessing '{guess}'...")
 
         for letter in guess:
@@ -117,7 +117,7 @@ class WordleGameAutomation:
         self.page.click("button[aria-label = 'enter']")
         self.wait_for_row_to_settle(row_index)
 
-    def check_for_captcha(self):
+    def check_for_captcha(self) -> bool:
         """Check if 'captcha' appears anywhere on the page."""
         page_content = self.page.content()  # Get the entire HTML content of the page
         if 'captcha' in page_content.lower():  # Search for 'captcha' (case-insensitive)
